@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Maptest002</title>
+    <script type="text/javascript" src="./libs/three.js"></script>
+    <script type="text/javascript" src="./libs/jquery-1.9.0.js"></script>
+    <script type="text/javascript" src="./libs/stats.js"></script>
+    <script type="text/javascript" src="./libs/dat.gui.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="Stats-output">
+    </div>
+    <div id="WebGL-output">
+    </div>
+    <script type="text/javascript">
+        $(function () {
+            var stats = initStats();
+            var scene = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 1000);
+
+            var canvasRenderer = new THREE.CanvasRenderer();
+            canvasRenderer.setClearColorHex(0x000000, 1.0);
+            canvasRenderer.setSize(window.innerWidth, window.innerHeight);
+
+            camera.position.x = 0;
+            camera.position.y = 0;
+            camera.position.z = 100;
+            camera.lookAt( {x:0, y:0, z:0 } );
+
+            $("#WebGL-output").append(canvasRenderer.domElement);
+
+            createParticles();
+            createAxies();
+
+            render();
+
+            function createParticles() {
+                var material = new THREE.ParticleBasicMaterial({
+                    color: 0xffffff
+                    ,size: 30
+                    ,transparent: true
+                    ,blending: THREE.AdditiveBlending
+                    ,sizeAttenuation: false
+                    ,map: generateSprite()});
+
+                for (var x = -5; x < 5; x++) {
+                    for (var y = -5; y < 5; y++) {
+
+                        var particle = new THREE.Particle(material);
+                        particle.position.set(x * 10, y * 10, x * 10);
+                        scene.add(particle);
+                    }
+                }
+            }
+
+            function generateSprite() {
+
+                var canvas = document.createElement('canvas');
+                canvas.width = 16;
+                canvas.height = 16;
+
+                var context = canvas.getContext('2d');
+                var gradient = context.createRadialGradient(canvas.width / 2, canvas.height / 2, 0, canvas.width / 2, canvas.height / 2, canvas.width / 2);
+                gradient.addColorStop(0, 'rgba(255,255,255,1)');
+                gradient.addColorStop(0.2, 'rgba(0,255,255,1)');
+                gradient.addColorStop(0.4, 'rgba(0,0,64,1)');
+                gradient.addColorStop(1, 'rgba(0,0,0,1)');
+
+                context.fillStyle = gradient;
+                context.fillRect(0, 0, canvas.width, canvas.height);
+
+                var texture = new THREE.Texture(canvas);
+                texture.needsUpdate = true;
+                return texture;
+
+            }
+
+            function createAxies(){
+                var axes = new THREE.AxisHelper( 20 );
+                scene.add(axes);
+            }
+
+            function render() {
+                stats.update();
+                requestAnimationFrame(render);
+                canvasRenderer.render(scene, camera);
+            }
+
+            function initStats() {
+                var stats = new Stats();
+            stats.setMode(0); // 0: fps, 1: ms
+
+            // Align top-left
+            stats.domElement.style.position = 'absolute';
+            stats.domElement.style.left = '0px';
+            stats.domElement.style.top = '0px';
+
+            $("#Stats-output").append(stats.domElement);
+
+            return stats;
+        }
+    });
+
+
+</script>
+</body>
+</html>

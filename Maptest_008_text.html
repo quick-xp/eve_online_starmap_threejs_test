@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Maptest008</title>
+    <script type="text/javascript" src="./libs/three.js"></script>
+    <script type="text/javascript" src="./libs/jquery-1.9.0.js"></script>
+    <script type="text/javascript" src="./libs/stats.js"></script>
+    <script type="text/javascript" src="./libs/dat.gui.js"></script>
+    <script type="text/javascript" src="./libs/TrackballControls.js"></script>
+    <script type="text/javascript" src="./libs/helvetiker_regular.typeface.js"></script> 
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="Stats-output">
+    </div>
+    <div id="WebGL-output">
+    </div>
+    <script type="text/javascript">
+        $(function () {
+            var stats = initStats();
+            var scene = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 10000000);
+
+            var webGLRenderer = new THREE.WebGLRenderer();
+            webGLRenderer.setClearColorHex(0x000000, 1.0);
+            webGLRenderer.setSize(window.innerWidth, window.innerHeight);
+
+
+            camera.position.x = 500000000000000000;
+            camera.position.y = 500000000000000000;
+            camera.position.z = 500000000000000000;
+            //camera.lookAt( {x:-1.2906486173487826e17, y:6.075530690996363e16, z:1.1746922706009029e17} );
+            //camera.lookAt( {x:0, y:0, z:0} );
+
+            var trackballControls = new THREE.TrackballControls(camera);
+            trackballControls.rotateSpeed = 1.0;
+            trackballControls.zoomSpeed = 3.0;
+            trackballControls.panSpeed = 1.0;
+            trackballControls.noZoom=false;
+            trackballControls.noPan=false;
+            trackballControls.staticMoving = true;
+            var clock = new THREE.Clock();
+            var text =null;
+            
+            $("#WebGL-output").append(webGLRenderer.domElement);
+
+            stars_position = getStarsData();
+            createStars(stars_position);
+            createAxies();
+            var directionalLight = null;
+            createText();
+            render();
+
+            function createStars(starsDatas) {
+                var geom = new THREE.Geometry();
+
+                var texture_star = THREE.ImageUtils.loadTexture("./assets2/Stars001.png");
+                var material = new THREE.ParticleBasicMaterial(
+                {
+                    size: 15.0e15
+                    ,vertexColors: true
+                    ,blending: THREE.AdditiveBlending
+                    ,map: texture_star
+                    ,sizeAttenuation: true //sizeがカメラに影響しない
+                    , color: 0xffffff
+                    , transparent: true
+                });
+
+                for (var p = 0; p < starsDatas.length; p++) 
+                {
+                    var particle = new THREE.Vector3(starsDatas[p].x,starsDatas[p].y, starsDatas[p].z);
+                    geom.vertices.push(particle);
+                    if(starsDatas[p].solarSystemName == "Jita"){
+                        geom.colors.push(new THREE.Color(0xff0000));
+                    }else{
+                        geom.colors.push(new THREE.Color(0x00ffff));
+                    }
+                }
+
+                var system = new THREE.ParticleSystem(geom, material);
+                scene.add(system);
+            }
+
+            function createAxies(){
+                var axes = new THREE.AxisHelper( 100000000000000000 );
+                scene.add(axes);
+            }
+
+            function render() {
+                stats.update();
+
+                var delta = clock.getDelta();
+                trackballControls.update(delta);
+                
+                text.rotation.setFromRotationMatrix( camera.matrix );
+                directionalLight.position = camera.position;
+                requestAnimationFrame(render);
+                webGLRenderer.render(scene, camera);
+            }
+
+            function initStats() 
+            {
+                var stats = new Stats();
+                stats.setMode(0); // 0: fps, 1: ms
+
+                // Align top-left
+                stats.domElement.style.position = 'absolute';
+                stats.domElement.style.left = '0px';
+                stats.domElement.style.top = '0px';
+
+                $("#Stats-output").append(stats.domElement);
+
+                return stats;
+            }
+
+            function getStarsData()
+            {
+                return loadLocalJsonFile("./data/EveMapData_json2.json");
+            }
+
+            //ローカルのJSONファイルを読み込む
+            function loadLocalJsonFile(filepath)
+            {
+                var result;
+                //非同期から同期にする
+                $.ajaxSetup({ async: false });
+                $.getJSON( filepath , function(json)
+                {
+                    result = json;
+                });
+                // 非同期に戻す
+                $.ajaxSetup({ async: true }); 
+                return result;
+            }
+
+            function createText()
+            {
+                var gyro = new THREE.Gyroscope();
+                gyro.position.set(0,0,0);
+                scene.add(gyro);
+
+
+                var textGeo = new THREE.TextGeometry( 'Hello Three.js!', {
+                  size: 5000000000000000,                 // 高さ40
+                  curveSegments: 8,         // 字曲線分割数1。カクカク。eが8角形に見える。
+                  height:10,                // 厚さ20
+                                            // フォント指定しないとhelvetikerの非ボールド、非イタリックに
+                                            bevelEnabled: false, bevelSize: 3, bevelThickness: 5, bevelSegments: 2
+                                            // ベベル有効、3太らせる、5伸ばす、ベベル分割数2
+                                        });
+                var greenMaterial = new THREE.MeshLambertMaterial( { color: 0xffffff } );
+                text = new THREE.Mesh( textGeo, greenMaterial );
+                text.position.x = 1000;
+                text.position.y = 1000;
+                text.position.z = 1000;
+                text.doubleSided = true;          
+                scene.add( text );
+
+                directionalLight = new THREE.DirectionalLight(
+                  0xffffff,       // 光の色
+                  3               // 光の強さ
+                  );
+
+                directionalLight.position.set(camera.position.x,camera.position.y,camera.position.z);
+                scene.add( directionalLight ); 
+            }
+
+        });
+</script>
+</body>
+</html>

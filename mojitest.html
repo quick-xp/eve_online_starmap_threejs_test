@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>mojitest</title>
+    <script type="text/javascript" src="./libs/three.js"></script>
+    <script type="text/javascript" src="./libs/jquery-1.9.0.js"></script>
+    <script type="text/javascript" src="./libs/stats.js"></script>
+    <script type="text/javascript" src="./libs/dat.gui.js"></script>
+    <script type="text/javascript" src="./libs/TrackballControls.js"></script>
+    <script type="text/javascript" src="./libs/helvetiker_regular.typeface.js"></script> 
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="Stats-output">
+    </div>
+    <div id="WebGL-output">
+    </div>
+    <script type="text/javascript">
+        $(function () {
+            var stats = initStats();
+            var scene = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000000);
+
+            var webGLRenderer = new THREE.WebGLRenderer();
+            webGLRenderer.setClearColorHex(0x000000, 1.0);
+            webGLRenderer.setSize(window.innerWidth, window.innerHeight);
+
+
+            camera.position.x = 100;
+            camera.position.y = 100;
+            camera.position.z = 100;
+            //camera.lookAt( {x:-1.2906486173487826e17, y:6.075530690996363e16, z:1.1746922706009029e17} );
+            camera.lookAt( {x:0, y:0, z:0} );
+
+            $("#WebGL-output").append(webGLRenderer.domElement);
+
+            createText();
+            render();
+
+            function createAxies(){
+                var axes = new THREE.AxisHelper( 100 );
+                scene.add(axes);
+            }
+
+            function render() {
+                stats.update();
+
+                requestAnimationFrame(render);
+                webGLRenderer.render(scene, camera);
+            }
+
+            function initStats() 
+            {
+                var stats = new Stats();
+                stats.setMode(0); // 0: fps, 1: ms
+
+                // Align top-left
+                stats.domElement.style.position = 'absolute';
+                stats.domElement.style.left = '0px';
+                stats.domElement.style.top = '0px';
+
+                $("#Stats-output").append(stats.domElement);
+
+                return stats;
+            }
+
+            function createText()
+            {
+                var textGeo = new THREE.TextGeometry( 'Leg', {
+                  size: 40,                 // 高さ40
+                  curveSegments: 8,         // 字曲線分割数1。カクカク。eが8角形に見える。
+                  height:1,                // 厚さ20
+                                            // フォント指定しないとhelvetikerの非ボールド、非イタリックに
+                                            bevelEnabled: false, bevelSize: 1, bevelThickness: 1, bevelSegments: 1
+                                            // ベベル有効、3太らせる、5伸ばす、ベベル分割数2
+                                        });
+                var greenMaterial = new THREE.MeshLambertMaterial( { color: 0xffffff } );
+                var text = new THREE.Mesh( textGeo, greenMaterial );
+                text.position.x = 0;
+                text.position.y = 0;
+                text.position.z = 0;
+                scene.add( text );
+
+                var spotLight = new THREE.SpotLight(0xffffff);
+                spotLight.position = new THREE.Vector3(734, 582, 279);
+                spotLight.target.position.x = 0;
+                spotLight.target.position.y = 0;
+                spotLight.target.position.z = 0;
+                spotLight.intensity = 2.4;
+
+                scene.add(spotLight);
+            }
+
+        });
+</script>
+</body>
+</html>

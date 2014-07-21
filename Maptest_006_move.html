@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Maptest006</title>
+    <script type="text/javascript" src="./libs/three.js"></script>
+    <script type="text/javascript" src="./libs/jquery-1.9.0.js"></script>
+    <script type="text/javascript" src="./libs/stats.js"></script>
+    <script type="text/javascript" src="./libs/dat.gui.js"></script>
+    <script type="text/javascript" src="./libs/OrbitControls.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="Stats-output">
+    </div>
+    <div id="WebGL-output">
+    </div>
+    <script type="text/javascript">
+        $(function () {
+            var stats = initStats();
+            var scene = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000000);
+
+            var webGLRenderer = new THREE.WebGLRenderer();
+            webGLRenderer.setClearColorHex(0x000000, 1.0);
+            webGLRenderer.setSize(window.innerWidth, window.innerHeight);
+
+
+            camera.position.x = 0;
+            camera.position.y = 500000000000000000;
+            camera.position.z = 0;
+            camera.lookAt( {x:0, y:0, z:0 } );
+
+            var orbitControls = new THREE.OrbitControls(camera);
+            orbitControls.autoRotate = true;
+            var clock = new THREE.Clock();
+
+            $("#WebGL-output").append(webGLRenderer.domElement);
+
+            stars_position = getStarsData();
+            createStars(stars_position);
+            createAxies();
+
+            render();
+
+            function createStars(starsDatas) {
+                var geom = new THREE.Geometry();
+
+                var texture_star = THREE.ImageUtils.loadTexture("./assets2/Stars001.png");
+                var material = new THREE.ParticleBasicMaterial(
+                {
+                    size: 5
+                    ,vertexColors: true
+                    ,blending: THREE.AdditiveBlending
+                    ,map: texture_star
+                    ,sizeAttenuation: false //sizeがカメラに影響しない
+                    , color: 0xffffff
+                    , transparent: true
+                });
+
+                for (var p = 0; p < starsDatas.length; p++) 
+                {
+                    var particle = new THREE.Vector3(starsDatas[p].x,starsDatas[p].y, starsDatas[p].z);
+                    geom.vertices.push(particle);
+                    geom.colors.push(new THREE.Color(0x00ffff));
+                }
+
+                var system = new THREE.ParticleSystem(geom, material);
+                scene.add(system);
+            }
+
+            function createAxies(){
+                var axes = new THREE.AxisHelper( 100000000000000000 );
+                scene.add(axes);
+            }
+
+            function render() {
+                stats.update();
+
+                var delta = clock.getDelta();
+                orbitControls.update(delta);
+                requestAnimationFrame(render);
+                webGLRenderer.render(scene, camera);
+            }
+
+            function initStats() 
+            {
+                var stats = new Stats();
+                stats.setMode(0); // 0: fps, 1: ms
+
+                // Align top-left
+                stats.domElement.style.position = 'absolute';
+                stats.domElement.style.left = '0px';
+                stats.domElement.style.top = '0px';
+
+                $("#Stats-output").append(stats.domElement);
+
+                return stats;
+            }
+
+            function getStarsData()
+            {
+                return loadLocalJsonFile("./data/EveMapData_json.json");
+            }
+
+            //ローカルのJSONファイルを読み込む
+            function loadLocalJsonFile(filepath)
+            {
+                var result;
+                //非同期から同期にする
+                $.ajaxSetup({ async: false });
+                $.getJSON( filepath , function(json)
+                {
+                    result = json;
+                });
+                // 非同期に戻す
+                $.ajaxSetup({ async: true }); 
+                return result;
+            }
+        });
+
+
+</script>
+</body>
+</html>
