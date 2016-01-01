@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+
+<html>
+
+<head>
+    <title>Maptest009</title>
+    <script type="text/javascript" src="./libs/three.js"></script>
+    <script type="text/javascript" src="./libs/jquery-1.9.0.js"></script>
+    <script type="text/javascript" src="./libs/stats.js"></script>
+    <script type="text/javascript" src="./libs/dat.gui.js"></script>
+    <script type="text/javascript" src="./libs/TrackballControls.js"></script>
+    <script type="text/javascript" src="./libs/helvetiker_regular.typeface.js"></script> 
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="Stats-output">
+    </div>
+    <div id="WebGL-output">
+    </div>
+    <script type="text/javascript">
+        $(function () {
+            var stats = initStats();
+            var scene = new THREE.Scene();
+            var camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 10000000);
+
+            //Trackball 干渉回避
+            document.addEventListener("mousedown", documentMouseDown, true);
+            var webGLRenderer = new THREE.WebGLRenderer();
+            webGLRenderer.setClearColorHex(0x000000, 1.0);
+            webGLRenderer.setSize(window.innerWidth, window.innerHeight);
+
+
+            camera.position.x = 500000000000000000;
+            camera.position.y = 500000000000000000;
+            camera.position.z = 500000000000000000;
+
+            var trackballControls = new THREE.TrackballControls(camera);
+            trackballControls.rotateSpeed = 1.0;
+            trackballControls.zoomSpeed = 3.0;
+            trackballControls.panSpeed = 1.0;
+            trackballControls.noZoom=false;
+            trackballControls.noPan=false;
+            trackballControls.staticMoving = true;
+            var clock = new THREE.Clock();
+            var star_text = [];
+            var directionalLight = null;
+            
+            $("#WebGL-output").append(webGLRenderer.domElement);
+
+            stars_position = getStarsData();
+            createStars(stars_position);
+            createAxies();
+            render();
+
+            function createStars(starsDatas) {
+                var geom = new THREE.Geometry();
+
+                var texture_star = THREE.ImageUtils.loadTexture("./assets2/Stars001.png");
+                var material = new THREE.ParticleBasicMaterial(
+                {
+                    size: 10.0e15
+                    ,vertexColors: true
+                    ,blending: THREE.AdditiveBlending
+                    ,map: texture_star
+                    ,sizeAttenuation: true //sizeがカメラに影響しない
+                    , color: 0xffffff
+                    , transparent: true
+                });
+
+                for (var p = 0; p < starsDatas.length; p++) 
+                {
+                    //limit
+                    //10000001    Derelik
+                    //10000002    The Forge
+                    //10000003    Vale of the Silent
+                    //10000004    UUA-F4
+                    //10000005    Detorid
+                    //10000006    Wicked Creek
+                    //10000043    Domain
+                    var limit = [10000002,10000043];
+                    if (limit.indexOf(starsDatas[p].regionID) > -1)
+                    {
+                        var particle = new THREE.Vector3(starsDatas[p].x,starsDatas[p].y, starsDatas[p].z);
+                        geom.vertices.push(particle);
+                        if(starsDatas[p].solarSystemName == "Jita"){
+                            geom.colors.push(new THREE.Color(0xff0000));
+                        }else{
+                            geom.colors.push(new THREE.Color(0x00ffff));
+                        }
+
+                        //show solarSystemName
+                        var textGeo = new THREE.TextGeometry(
+                           starsDatas[p].solarSystemName,
+                           {
+                              size: 2.0e15,
+                              curveSegments: 8,
+                              height:10,
+                              bevelEnabled: false, bevelSize: 3, bevelThickness: 5, bevelSegments: 2
+                          });
+                        var textMaterial = new THREE.MeshLambertMaterial( { color: 0xffffff } );
+                        var sText = new THREE.Mesh( textGeo, textMaterial );
+                        sText.position.set(starsDatas[p].x,starsDatas[p].y, starsDatas[p].z);
+                        star_text.push(sText);
+                        scene.add(sText);
+
+                        //debug
+                        //console.log("Load " + p);
+                        //max load
+                        if(p > 2000){
+                            break;
+                        }
+                    }
+                }
+
+                var system = new THREE.ParticleSystem(geom, material);
+                scene.add(system);
+
+                //light
+                directionalLight = new THREE.DirectionalLight(
+                  0xffffff,       // 光の色
+                  3               // 光の強さ
+                  );
+
+                directionalLight.position.set(camera.position.x,camera.position.y,camera.position.z);
+                scene.add( directionalLight ); 
+            }
+
+            function createAxies(){
+                var axes = new THREE.AxisHelper( 100000000000000000 );
+                scene.add(axes);
+            }
+
+            function render() {
+                stats.update();
+
+                var delta = clock.getDelta();
+                trackballControls.update(delta);
+                
+                //text billboard
+                for (var i = 0; i < star_text.length; i++) 
+                {
+                    star_text[i].rotation.setFromRotationMatrix( camera.matrix );
+                    var s_distance = star_text[i].position.distanceTo(camera.position)
+                    if ( s_distance > 5.0e10)
+                    {
+                        star_text[i].visible = true;
+                    }else
+                    {
+                        star_text[i].visible = true;
+                    }
+                }
+
+                directionalLight.position = camera.position;
+                requestAnimationFrame(render);
+                webGLRenderer.render(scene, camera);
+            }
+
+            function initStats() 
+            {
+                var stats = new Stats();
+                stats.setMode(0); // 0: fps, 1: ms
+
+                // Align top-left
+                stats.domElement.style.position = 'absolute';
+                stats.domElement.style.left = '0px';
+                stats.domElement.style.top = '0px';
+
+                $("#Stats-output").append(stats.domElement);
+
+                return stats;
+            }
+
+            function getStarsData()
+            {
+                return loadLocalJsonFile("./data/EveMapData_json.json");
+            }
+
+            //ローカルのJSONファイルを読み込む
+            function loadLocalJsonFile(filepath)
+            {
+                var result;
+                //非同期から同期にする
+                $.ajaxSetup({ async: false });
+                $.getJSON( filepath , function(json)
+                {
+                    result = json;
+                });
+                // 非同期に戻す
+                $.ajaxSetup({ async: true }); 
+                return result;
+            }
+
+            var projector = new THREE.Projector();
+    
+            function documentMouseDown( e ){         
+                var rect = e.target.getBoundingClientRect();
+
+                // スクリーン上のマウス位置を取得する
+                var mouseX = e.clientX - rect.left;
+                var mouseY = e.clientY - rect.top;
+
+                // 取得したスクリーン座標を-1〜1に正規化する（WebGLは-1〜1で座標が表現される）
+                mouseX =  (mouseX/window.innerWidth)  * 2 - 1;
+                mouseY = -(mouseY/window.innerHeight) * 2 + 1;
+
+                // マウスの位置ベクトル
+                var pos2 = new THREE.Vector3(mouseX, mouseY, 1);
+
+                // pos はスクリーン座標系なので、オブジェクトの座標系に変換
+                // オブジェクト座標系は今表示しているカメラからの視点なので、第二引数にカメラオブジェクトを渡す
+                projector.unprojectVector(pos2, camera);
+
+                // 始点、向きベクトルを渡してレイを作成
+                var ray = new THREE.Raycaster(camera.position, pos2.sub(camera.position).normalize());
+
+                // 交差判定
+                // 引数は取得対象となるMeshの配列を渡す。以下はシーン内のすべてのオブジェクトを対象に。
+                //var objs = ray.intersectObjects(scene.children);
+
+                //ヒエラルキーを持った子要素も対象とする場合は第二引数にtrueを指定する
+                var objs = ray.intersectObjects(scene.children, true);
+
+                if (objs.length > 0) {
+                    // 交差していたらobjsが1以上になるので、やりたいことをやる。
+                    objs[0].object.position.x = 10;
+                    alarm("error");
+                }
+            }
+
+        });
+
+</script>
+</body>
+</html>
